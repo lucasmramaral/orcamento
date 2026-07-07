@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Módulo de Orçamento de Capacitação | SAGAS LXP</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0984e3; --secondary: #74b9ff; --dark: #2d3436; --light: #f5f6fa;
+            --success: #00b894; --warning: #fdcb6e; --danger: #d63031; --gray: #b2bec3;
+            --text-muted: #636e72; --border: #dfe6e9;
+        }
+
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f1f2f6; display: flex; height: 100vh; color: var(--dark); overflow: hidden;}
+
+        /* Sidebar */
+        .sidebar { width: 260px; background-color: var(--dark); color: white; display: flex; flex-direction: column; }
+        .sidebar-header { padding: 20px; font-size: 1.2rem; font-weight: bold; background-color: #222f3e; border-bottom: 1px solid #353b48; }
+        .menu { list-style: none; padding: 0; margin: 0; }
+        .menu li { padding: 15px 20px; cursor: pointer; border-bottom: 1px solid #353b48; transition: 0.2s; font-size: 0.95rem; }
+        .menu li:hover, .menu li.active { background-color: var(--primary); border-left: 4px solid var(--warning); }
+        .menu li i { margin-right: 10px; width: 15px; text-align: center; }
+
+        /* Main Content */
+        .main-content { flex: 1; overflow-y: auto; padding: 30px; }
+        .view-section { display: none; animation: fadeIn 0.3s ease; }
+        .view-section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Typography & Buttons */
+        .header-title { font-size: 1.6rem; margin-top: 0; color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .header-actions { display: flex; gap: 10px; }
+        
+        .btn { padding: 9px 16px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; color: white; transition: 0.2s; display: inline-flex; align-items: center; gap: 8px; font-size: 0.85rem;}
+        .btn-primary { background-color: var(--primary); }
+        .btn-primary:hover { background-color: #076aba; }
+        .btn-success { background-color: var(--success); }
+        .btn-warning { background-color: var(--warning); color: #333; }
+        .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-muted); }
+        .btn-outline:hover { background: #e2e6ea; }
+
+        /* Cards & Forms */
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .card-title { font-size: 1.1rem; color: var(--dark); border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 15px; margin-top: 0; }
+        
+        .form-row { display: flex; gap: 15px; margin-bottom: 15px; flex-wrap: wrap;}
+        .form-group { flex: 1; min-width: 200px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 0.85rem; color: var(--text-muted); }
+        .form-control { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 4px; box-sizing: border-box; font-family: inherit; font-size: 0.9rem; }
+        .form-control[readonly] { background-color: #f8f9fa; color: var(--gray); cursor: not-allowed; }
+
+        /* Tables */
+        .table-responsive { overflow-x: auto; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th, td { padding: 12px 15px; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
+        th { background-color: #f8f9fa; font-weight: bold; color: var(--text-muted); }
+        tbody tr:hover { background-color: #f1f2f6; }
+        
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; color: white; text-transform: uppercase;}
+        .badge-info { background-color: var(--primary); }
+        .badge-warning { background-color: var(--warning); color: #333;}
+        .badge-success { background-color: var(--success); }
+        .badge-danger { background-color: var(--danger); }
+        .badge-outline { background: transparent; border: 1px solid var(--gray); color: var(--text-muted); }
+
+        /* KPIs */
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .kpi-card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); border-left: 4px solid var(--gray); }
+        .kpi-card h4 { margin: 0 0 5px 0; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; }
+        .kpi-card .value { font-size: 1.5rem; font-weight: bold; color: var(--dark); margin: 0; }
+        
+        /* Specific KPI Colors */
+        .kpi-aportado { border-left-color: var(--primary); }
+        .kpi-disponivel { border-left-color: var(--success); }
+        .kpi-comprometido { border-left-color: var(--warning); }
+        .kpi-executado { border-left-color: var(--dark); }
+        .kpi-contingenciado { border-left-color: var(--danger); }
+
+        /* Toggle Switch */
+        .switch-container { background: #e3f2fd; padding: 12px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; border-left: 4px solid var(--primary); margin-bottom: 20px;}
+        .switch { position: relative; display: inline-block; width: 46px; height: 22px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 22px; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--success); }
+        input:checked + .slider:before { transform: translateX(24px); }
+
+        /* Modal */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; display: none; align-items: center; justify-content: center; }
+        .modal-content { background: white; padding: 25px; border-radius: 8px; width: 600px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        .modal-content h3 { margin-top: 0; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 20px; color: var(--primary);}
+        .modal-actions { text-align: right; margin-top: 20px; border-top: 1px solid var(--border); padding-top: 15px;}
+        
+        /* Placeholder Chart */
+        .chart-placeholder { height: 200px; background: #f8f9fa; border: 1px dashed var(--gray); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--gray); font-style: italic; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <i class="fas fa-wallet"></i> SAGAS LXP<br><span style="font-size: 0.75rem; font-weight: normal; color: var(--secondary);">Módulo Orçamentário</span>
+        </div>
+        <ul class="menu">
+            <li class="active" onclick="navigateTo('view-dashboard')"><i class="fas fa-chart-line"></i> Dashboard Global</li>
+            <li onclick="navigateTo('view-contas')"><i class="fas fa-university"></i> Contas Correntes</li>
+            <li onclick="navigateTo('view-categorias')"><i class="fas fa-tags"></i> Categorias de Invest.</li>
+        </ul>
+    </div>
+
+    <div class="main-content">
+
+        <!-- VIEW: DASHBOARD GLOBAL -->
+        <div id="view-dashboard" class="view-section active">
+            <div class="header-title">
+                <span>Painel de Inteligência Orçamentária (2026)</span>
+                <div class="header-actions">
+                    <button class="btn btn-success" onclick="alert('Exportação Advanced Excel iniciada.')"><i class="fas fa-file-excel"></i> Exportar Relatório (.XLSX)</button>
+                </div>
+            </div>
+
+            <div class="kpi-grid">
+                <div class="kpi-card kpi-aportado">
+                    <h4>Orçamento Global Aportado</h4>
+                    <p class="value">R$ 1.500.000</p>
+                </div>
+                <div class="kpi-card kpi-disponivel">
+                    <h4>Saldo Global Disponível</h4>
+                    <p class="value">R$ 820.000</p>
+                </div>
+                <div class="kpi-card kpi-executado">
+                    <h4>Total Executado</h4>
+                    <p class="value">R$ 450.000 <span style="font-size:0.8rem; color:var(--text-muted); font-weight:normal;">(30%)</span></p>
+                </div>
+                <div class="kpi-card kpi-comprometido">
+                    <h4>Total Comprometido (Reservas)</h4>
+                    <p class="value">R$ 200.000</p>
+                </div>
+                <div class="kpi-card kpi-contingenciado">
+                    <h4>Contingenciado (Congelado)</h4>
+                    <p class="value">R$ 30.000</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">Distribuição do Orçamento por Conta Corrente (Visão Macro)</h3>
+                <div class="chart-placeholder">
+                    <i class="fas fa-chart-bar" style="font-size: 2rem; margin-right: 10px;"></i> [Gráfico de Barras Empilhadas: Agrupando Contas Filhas sob as Contas Pai]
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW: CONTAS CORRENTES (LISTAGEM) -->
+        <div id="view-contas" class="view-section">
+            <div class="header-title">
+                <span>Gestão de Contas Correntes</span>
+                <div class="header-actions">
+                    <button class="btn btn-primary" onclick="openModal('modal-aporte')"><i class="fas fa-hand-holding-usd"></i> Novo Aporte</button>
+                    <button class="btn btn-outline" onclick="openModal('modal-transferencia')"><i class="fas fa-exchange-alt"></i> Transferência (Distribuir Verba)</button>
+                </div>
+            </div>
+            
+            <div class="card" style="padding: 15px; margin-bottom: 15px; background: #f8f9fa;">
+                <div class="form-row" style="margin-bottom: 0;">
+                    <div class="form-group"><input type="text" class="form-control" placeholder="Buscar por Nome ou Lotação..."></div>
+                    <div class="form-group">
+                        <select class="form-control">
+                            <option>Todos os Tipos</option>
+                            <option>Raiz (Corporativa)</option>
+                            <option>Raiz (Específica)</option>
+                            <option>Operacional (Filha)</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><button class="btn btn-primary"><i class="fas fa-search"></i> Filtrar</button></div>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Conta Corrente / Lotação</th>
+                            <th>Tipo (Origem)</th>
+                            <th>Total Aportado</th>
+                            <th>Executado</th>
+                            <th>Saldo Disponível</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <strong>Plano: Liderança Feminina</strong><br>
+                                <small style="color:var(--text-muted)">Corporativo Transversal</small>
+                            </td>
+                            <td><span class="badge badge-info">Raiz (1:1)</span></td>
+                            <td>R$ 200.000,00</td>
+                            <td>R$ 50.000,00</td>
+                            <td><strong style="color: var(--success);">R$ 120.000,00</strong></td>
+                            <td><button class="btn btn-outline" onclick="navigateTo('view-conta-extrato')"><i class="fas fa-file-invoice-dollar"></i> Extrato</button></td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <strong>Plano: SUGEP (Pai)</strong><br>
+                                <small style="color:var(--text-muted)">Superintendência de Pessoas</small>
+                            </td>
+                            <td><span class="badge badge-info">Raiz (1:1)</span></td>
+                            <td>R$ 500.000,00</td>
+                            <td>R$ 150.000,00</td>
+                            <td><strong style="color: var(--success);">R$ 300.000,00</strong></td>
+                            <td><button class="btn btn-outline" onclick="navigateTo('view-conta-extrato')"><i class="fas fa-file-invoice-dollar"></i> Extrato</button></td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <span style="margin-left: 15px;">↳ <strong>DIJUG (Filha)</strong></span><br>
+                                <small style="margin-left: 15px; color:var(--text-muted)">Divisão de Seleção</small>
+                            </td>
+                            <td><span class="badge badge-outline">Operacional (1:N)</span></td>
+                            <td>R$ 50.000,00 <i class="fas fa-info-circle" title="Recebido via Transferência"></i></td>
+                            <td>R$ 10.000,00</td>
+                            <td><strong style="color: var(--success);">R$ 40.000,00</strong></td>
+                            <td><button class="btn btn-outline"><i class="fas fa-file-invoice-dollar"></i> Extrato</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- VIEW: EXTRATO DA CONTA CORRENTE -->
+        <div id="view-conta-extrato" class="view-section">
+            <div class="header-title">
+                <span><i class="fas fa-university" style="color:var(--gray)"></i> Extrato: SUGEP (Superintendência de Pessoas)</span>
+                <div class="header-actions">
+                    <button class="btn btn-outline" onclick="navigateTo('view-contas')"><i class="fas fa-arrow-left"></i> Voltar</button>
+                    <button class="btn btn-success" onclick="alert('Exportando Extrato (.XLSX)')"><i class="fas fa-file-excel"></i> Exportar Extrato</button>
+                </div>
+            </div>
+
+            <!-- Toggle Roll-up -->
+            <div class="switch-container">
+                <div>
+                    <strong style="color: var(--dark);"><i class="fas fa-sitemap"></i> Visão Consolidada (Roll-up Hierárquico)</strong>
+                    <p style="margin: 3px 0 0 0; font-size: 0.85rem; color: var(--text-muted);">Ative para somar os saldos e movimentações desta conta Raiz com todas as suas contas Operacionais (Filhas) ativas.</p>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" onchange="toggleConsolidada(this.checked)">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <div class="kpi-grid">
+                <div class="kpi-card kpi-aportado">
+                    <h4>Total Aportado</h4>
+                    <p class="value" id="kpi-ext-aportado">R$ 500.000</p>
+                </div>
+                <div class="kpi-card kpi-disponivel">
+                    <h4>Saldo Disponível</h4>
+                    <p class="value" id="kpi-ext-disp">R$ 300.000</p>
+                </div>
+                <div class="kpi-card kpi-comprometido">
+                    <h4>Comprometido (Reservas)</h4>
+                    <p class="value" id="kpi-ext-comp">R$ 50.000</p>
+                </div>
+                <div class="kpi-card kpi-executado">
+                    <h4>Executado</h4>
+                    <p class="value" id="kpi-ext-exec">R$ 150.000</p>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 15px; display: flex; gap: 10px;">
+                <button class="btn btn-outline" onclick="openModal('modal-debito-avulso')"><i class="fas fa-receipt"></i> Lançar Débito Avulso</button>
+                <button class="btn btn-warning" onclick="openModal('modal-contingenciamento')" style="color: white;"><i class="fas fa-lock"></i> Contingenciar</button>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">Movimentações Financeiras</h3>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Tipo</th>
+                                <th>Ref. (Ação / Turma / Justificativa)</th>
+                                <th>Valor</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabela-extrato">
+                            <tr>
+                                <td>15/05/2026</td>
+                                <td><span class="badge badge-info">Débito Efetivo</span></td>
+                                <td>Trilha Power BI Avançado (Turma 02)</td>
+                                <td><strong style="color: var(--danger);">- R$ 1.500,00</strong></td>
+                                <td>Concluído</td>
+                            </tr>
+                            <tr>
+                                <td>10/05/2026</td>
+                                <td><span class="badge badge-warning">Reserva</span></td>
+                                <td>Certificação Scrum Master</td>
+                                <td><strong style="color: var(--warning);">- R$ 800,00</strong></td>
+                                <td>Aguardando Execução</td>
+                            </tr>
+                            <tr>
+                                <td>01/05/2026</td>
+                                <td><span class="badge badge-success">Aporte Inicial</span></td>
+                                <td>Orçamento Aprovado 2026</td>
+                                <td><strong style="color: var(--success);">+ R$ 500.000,00</strong></td>
+                                <td>Concluído</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW: CATEGORIAS DE INVESTIMENTO -->
+        <div id="view-categorias" class="view-section">
+            <div class="header-title">
+                <span>Categorias de Investimento (Envelopes)</span>
+                <div class="header-actions">
+                    <button class="btn btn-success" onclick="alert('Planilha gerada com sucesso!')"><i class="fas fa-file-excel"></i> Exportar Envelopes (.XLSX)</button>
+                </div>
+            </div>
+            <p style="color: var(--text-muted); margin-top:-10px;">Visão transversal: Acompanhamento de em quê o dinheiro é gasto, independente da conta.</p>
+
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Categoria de Investimento</th>
+                            <th>Envelope (Ref.)</th>
+                            <th>Executado + Comprometido</th>
+                            <th>Progresso</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Tecnologia da Informação</strong></td>
+                            <td>R$ 400.000,00</td>
+                            <td>R$ 380.000,00</td>
+                            <td>
+                                <div style="width: 100%; background: #eee; height: 8px; border-radius: 4px; margin-top:5px;">
+                                    <div style="width: 95%; background: var(--danger); height: 8px; border-radius: 4px;"></div>
+                                </div>
+                            </td>
+                            <td><span class="badge badge-danger">Alerta (95%)</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Compliance e Regulatório</strong></td>
+                            <td>R$ 200.000,00</td>
+                            <td>R$ 50.000,00</td>
+                            <td>
+                                <div style="width: 100%; background: #eee; height: 8px; border-radius: 4px; margin-top:5px;">
+                                    <div style="width: 25%; background: var(--success); height: 8px; border-radius: 4px;"></div>
+                                </div>
+                            </td>
+                            <td><span class="badge badge-success">Saudável</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- MODAIS DE OPERAÇÃO -->
+
+    <!-- Modal: Transferência / Criação sob Demanda -->
+    <div id="modal-transferencia" class="modal-overlay">
+        <div class="modal-content">
+            <h3><i class="fas fa-exchange-alt"></i> Transferir / Distribuir Verba</h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top:-10px;">Move verba entre contas. Se a lotação de destino não tiver conta, o sistema criará uma (Conta Operacional) atrelada ao Plano Pai adequado.</p>
+            
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label>Conta Corrente de Origem (Apenas ativas com saldo)</label>
+                <select class="form-control">
+                    <option>SUGEP (Pai) - Saldo: R$ 300.000,00</option>
+                </select>
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label>Lotação de Destino (Busca Inteligente - SGP)</label>
+                <input type="text" class="form-control" placeholder="Digite o nome da Diretoria, Depto ou Divisão..." value="Divisão de Infraestrutura (DINFRA)">
+                <small style="color: var(--primary); font-weight: bold; display: block; margin-top: 5px;"><i class="fas fa-info-circle"></i> Conta Operacional será criada sob demanda e vinculada ao Plano da SUTIC.</small>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Valor (R$)</label>
+                    <input type="number" class="form-control" placeholder="0,00">
+                </div>
+                <div class="form-group">
+                    <label>Data</label>
+                    <input type="date" class="form-control" value="2026-07-07" readonly>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Justificativa da Redistribuição</label>
+                <input type="text" class="form-control" placeholder="Ex: Descentralização de orçamento para área fim...">
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-outline" onclick="closeModal('modal-transferencia')">Cancelar</button>
+                <button class="btn btn-primary" onclick="alert('Transferência atômica concluída! Conta operacional criada.'); closeModal('modal-transferencia');">Confirmar Transferência</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Aporte -->
+    <div id="modal-aporte" class="modal-overlay">
+        <div class="modal-content" style="width: 450px;">
+            <h3><i class="fas fa-hand-holding-usd"></i> Registrar Aporte</h3>
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label>Conta Corrente de Destino</label>
+                <select class="form-control"><option>Liderança Feminina (Corporativo)</option></select>
+            </div>
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label>Valor do Aporte (R$)</label>
+                <input type="number" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>Justificativa / Doc. Referência</label>
+                <input type="text" class="form-control" placeholder="Ata Diretoria nº 45/2026">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-outline" onclick="closeModal('modal-aporte')">Cancelar</button>
+                <button class="btn btn-success" onclick="alert('Aporte registrado.'); closeModal('modal-aporte');">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Contingenciamento -->
+    <div id="modal-contingenciamento" class="modal-overlay">
+        <div class="modal-content" style="width: 450px;">
+            <h3 style="color: var(--warning);"><i class="fas fa-lock"></i> Contingenciar Verba</h3>
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label>Congelar por (Valor ou %)</label>
+                <select class="form-control"><option>Valor Absoluto (R$)</option><option>Percentual do Saldo (%)</option></select>
+            </div>
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label>Quantidade</label>
+                <input type="number" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>Motivo</label>
+                <input type="text" class="form-control" placeholder="Decreto contingenciamento...">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-outline" onclick="closeModal('modal-contingenciamento')">Cancelar</button>
+                <button class="btn btn-warning" style="color: white;" onclick="alert('Saldo congelado.'); closeModal('modal-contingenciamento');">Aplicar Contingenciamento</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Débito Avulso -->
+    <div id="modal-debito-avulso" class="modal-overlay">
+        <div class="modal-content">
+            <h3><i class="fas fa-receipt"></i> Lançar Débito Avulso</h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top:-10px;">Despesas acessórias/logísticas que não transitam no fluxo automático de inscrições.</p>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Tipo de Despesa Extra (Domínio Fixo)</label>
+                    <select class="form-control">
+                        <option>Alimentação (Coffee Break / Refeições)</option>
+                        <option>Deslocamento / Transporte</option>
+                        <option>Locação de Espaço / Equipamentos</option>
+                        <option>Material Didático / Escritório</option>
+                        <option>Assinatura / Compra de Plataformas</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Categoria de Investimento (Envelope)</label>
+                    <select class="form-control">
+                        <option>Demais Assuntos</option>
+                        <option>Tecnologia da Informação</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Valor do Débito (R$)</label>
+                    <input type="number" class="form-control" placeholder="0,00">
+                </div>
+                <div class="form-group">
+                    <label>Data de Competência</label>
+                    <input type="date" class="form-control" value="2026-07-07">
+                </div>
+            </div>
+
+            <!-- CAMPO EVENTO VINCULADO (OPCIONAL) -->
+            <div class="form-group" style="margin-bottom: 15px; background: #fff3e0; padding: 10px; border-left: 3px solid var(--warning); border-radius: 4px;">
+                <label style="color: #d35400;">Ação Educacional / Evento Vinculado (Opcional)</label>
+                <input type="text" class="form-control" placeholder="Busque a ação ou turma para compor o TCO (Custo Total)...">
+                <small style="color: #d35400; font-size: 0.75rem;">Se preenchido, esta despesa aparecerá no relatório analítico da ação.</small>
+            </div>
+
+            <div class="form-group">
+                <label>Descrição / Justificativa</label>
+                <input type="text" class="form-control" placeholder="Ex: Pagamento NF 1234 - Coffee Break Turma X">
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-outline" onclick="closeModal('modal-debito-avulso')">Cancelar</button>
+                <button class="btn btn-primary" onclick="alert('Débito efetivado. Saldo disponível reduzido imediatamente.'); closeModal('modal-debito-avulso');">Registrar Despesa</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // SPA Navigation
+        function navigateTo(viewId) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.menu li').forEach(el => el.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+            
+            if(viewId === 'view-dashboard') document.querySelectorAll('.menu li')[0].classList.add('active');
+            if(viewId.includes('conta')) document.querySelectorAll('.menu li')[1].classList.add('active');
+            if(viewId === 'view-categorias') document.querySelectorAll('.menu li')[2].classList.add('active');
+        }
+
+        // Modal Logic
+        function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+        // Mock Consolidação Hierárquica (Roll-up)
+        function toggleConsolidada(isActive) {
+            const rowExtrato = document.getElementById('tabela-extrato');
+            
+            if(isActive) {
+                // Soma os valores da Filha (DIJUG)
+                document.getElementById('kpi-ext-aportado').innerText = 'R$ 550.000';
+                document.getElementById('kpi-ext-disp').innerText = 'R$ 340.000';
+                document.getElementById('kpi-ext-exec').innerText = 'R$ 160.000';
+                
+                // Adiciona linha visual fake da filha
+                const tr = document.createElement('tr');
+                tr.id = 'linha-filha';
+                tr.innerHTML = `
+                    <td>05/06/2026</td>
+                    <td><span class="badge badge-info" style="background:var(--gray)">Débito (Conta Filha)</span></td>
+                    <td>Curso Online RH (DIJUG)</td>
+                    <td><strong style="color: var(--danger);">- R$ 10.000,00</strong></td>
+                    <td>Concluído</td>
+                `;
+                rowExtrato.prepend(tr);
+            } else {
+                // Volta valores originais da Raiz
+                document.getElementById('kpi-ext-aportado').innerText = 'R$ 500.000';
+                document.getElementById('kpi-ext-disp').innerText = 'R$ 300.000';
+                document.getElementById('kpi-ext-exec').innerText = 'R$ 150.000';
+                
+                // Remove linha fake
+                const linha = document.getElementById('linha-filha');
+                if(linha) linha.remove();
+            }
+        }
+    </script>
+</body>
+</html>
